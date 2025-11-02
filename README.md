@@ -1,4 +1,4 @@
-# Real-Time Chat Application
+# ChatterBox - A Real-Time Chat Application
 
 A modern, scalable real-time chat application built with React, TypeScript, Node.js, and WebSockets. This application enables instant messaging across multiple chat rooms with live user presence tracking.
 
