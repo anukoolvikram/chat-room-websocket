@@ -1,59 +1,114 @@
 import { WebSocketServer, WebSocket } from "ws";
 
-// const app=express()
-const wss=new WebSocketServer({port:8080})
-
-// app.post('/', ()=>{
-// })
-
-// let userCount=0
-
-interface User{
-    socket: WebSocket;
-    room: String;
+interface UserSocket extends WebSocket {
+  user?: any; 
 }
 
-let allSockets: User[]=[];
+const wss = new WebSocketServer({ port: 8080 });
+const rooms = new Map<string, Set<UserSocket>>();
+const socketToRoom = new Map<UserSocket, string>();
 
-wss.on('connection', (socket)=>{
-    // allSockets.push(socket)
-    // userCount++;
-    // console.log('user connected'+ userCount);
+function broadcastUserList(roomId: string) {
+  const room = rooms.get(roomId);
+  if (!room) return;
+  const usersInRoom = Array.from(room).map(socket => socket.user).filter(Boolean); // Get all users
+  const userListMessage = JSON.stringify({
+    type: 'user-list',
+    payload: { users: usersInRoom }
+  });
 
-    socket.on("message", (message)=>{
-        // console.log("message from user " + message.toString())
-        // for(let s of allSockets){
-        //     s.send(message.toString()+" message from server")
-        // }
-        const parsedMessage=JSON.parse(message as unknown as string);
+  for (const client of room) {
+    if (client.readyState === WebSocket.OPEN) {
+      client.send(userListMessage);
+    }
+  }
+}
 
-        if(parsedMessage.type=='join'){
-            allSockets.push({
-                socket,
-                room: parsedMessage.payload.roomId
-            })
+wss.on('connection', (socket: UserSocket) => {
+  console.log('Client connected');
+  
+  socket.on('message', (message) => {
+    let parsedMessage;
+    try {
+      parsedMessage = JSON.parse(message.toString());
+    } catch (error) {
+      console.error('Failed to parse message:', message.toString());
+      return;
+    }
+
+    if (parsedMessage.type === 'join' && parsedMessage.payload?.roomId && parsedMessage.payload?.user) {
+      const { roomId, user } = parsedMessage.payload;
+      
+      const oldRoomId = socketToRoom.get(socket);
+      if (oldRoomId) {
+        const oldRoom = rooms.get(oldRoomId);
+        oldRoom?.delete(socket);
+        if (oldRoom && oldRoom.size === 0) rooms.delete(oldRoomId);
+        broadcastUserList(oldRoomId); 
+      }
+
+      if (!rooms.has(roomId)) {
+        rooms.set(roomId, new Set());
+      }
+      const room = rooms.get(roomId)!; 
+      
+      socket.user = user; 
+      room.add(socket);
+      socketToRoom.set(socket, roomId);
+      console.log(`${user.name} joined room: ${roomId}`);
+      broadcastUserList(roomId);
+    }
+
+    if (parsedMessage.type === 'chat') {
+      const roomId = socketToRoom.get(socket);
+      if (!roomId) {
+        socket.send(JSON.stringify({ type: 'error', message: 'You must join a room before chatting.' }));
+        return;
+      }
+      
+      const room = rooms.get(roomId);
+      if (room) {
+        socket.user = parsedMessage.payload.user;
+        
+        const messageToSend = JSON.stringify({
+          type: 'chat',
+          payload: {
+            message: parsedMessage.payload.message,
+            user: socket.user, 
+            timestamp: new Date().toISOString()
+          }
+        });
+        
+        for (const client of room) {
+          if (client.readyState === WebSocket.OPEN) {
+            client.send(messageToSend);
+          }
         }
+      }
+    }
+  });
 
-        if(parsedMessage.type=='chat'){
-
-            // finding room
-            let currRoom:String;
-            allSockets.forEach((s)=>{
-                if(s.socket==socket){
-                    currRoom=s.room;
-                }
-            })
-
-            // sending message to all in same room
-            allSockets.forEach(s=>{
-                if(s.room==currRoom){
-                    s.socket.send(parsedMessage.payload.message)
-                }
-            })
+  socket.on('close', () => {
+    console.log('Client disconnected');
+    const roomId = socketToRoom.get(socket);
+    if (roomId) {
+      const room = rooms.get(roomId);
+      if (room) {
+        room.delete(socket);
+        if (room.size === 0) {
+          rooms.delete(roomId);
+          console.log(`Room ${roomId} deleted.`);
+        } else {
+          broadcastUserList(roomId);
         }
-    })
+      }
+      socketToRoom.delete(socket);
+    }
+  });
 
-    // socket.on('disconnect', ()=>{
-    //     allSockets.filter((s)=>{s!=socket});
-    // })
-})
+  socket.on('error', (error) => {
+    console.error('WebSocket error:', error);
+  });
+});
+
+console.log('WebSocket server started on port 8080');

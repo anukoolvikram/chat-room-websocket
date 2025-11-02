@@ -1,0 +1,29 @@
+<svg width="120" height="120" viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="mainGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#6366F1"/>
+      <stop offset="100%" stop-color="#8B5CF6"/>
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="4" stdDeviation="8" flood-color="#6366F1" flood-opacity="0.3"/>
+    </filter>
+  </defs>
+  
+  <!-- Main Chat Bubble -->
+  <path d="M30 20C16.75 20 6 30.75 6 44v36c0 4.42 3.58 8 8 8h40l20 16V88h20c13.25 0 24-10.75 24-24S93.25 40 80 40H30z" 
+        fill="url(#mainGradient)" filter="url(#shadow)"/>
+  
+  <!-- Sound Waves -->
+  <g fill="white" opacity="0.9">
+    <path d="M40 56h4v8h-4z"/>
+    <path d="M46 52h4v16h-4z"/>
+    <path d="M52 48h4v24h-4z"/>
+    <path d="M58 52h4v16h-4z"/>
+    <path d="M64 56h4v8h-4z"/>
+  </g>
+  
+  <!-- Smile -->
+  <path d="M48 68c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4z" fill="white"/>
+  <path d="M66 68c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4z" fill="white"/>
+  <path d="M52 76c0 2.21 2.69 4 6 4s6-1.79 6-4" stroke="white" stroke-width="2" fill="none"/>
+</svg>
